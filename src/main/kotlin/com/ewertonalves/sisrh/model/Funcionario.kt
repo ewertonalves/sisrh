@@ -23,4 +23,6 @@ data class Funcionario(
     var dtAdmissao:     LocalDate,
     var dtDemissao:     LocalDate,
     var salario:        Double
-)
+){
+    constructor() : this(0, "", "", "", LocalDate.now(), "", "", LocalDate.now(), LocalDate.now(), 0.0)
+}
