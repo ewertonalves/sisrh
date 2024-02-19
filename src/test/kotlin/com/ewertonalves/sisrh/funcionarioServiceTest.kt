@@ -1,173 +1,200 @@
 package com.ewertonalves.sisrh
 
-import com.ewertonalves.sisrh.model.Funcionario
 import com.ewertonalves.sisrh.repository.FuncionarioRepository
 import com.ewertonalves.sisrh.service.FuncionarioService
-import org.junit.jupiter.api.Assertions
+import com.ewertonalves.sisrh.model.Funcionario
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.mockito.InjectMocks
+import org.mockito.Mock
 import org.mockito.Mockito.`when`
-import org.mockito.Mockito.any
-import org.mockito.Mockito.mock
+import org.mockito.Mockito.verify
+import org.mockito.MockitoAnnotations
 import java.time.LocalDate
 
 class FuncionarioServiceTest {
 
-    private lateinit var funcionarioRepository: FuncionarioRepository
-    private lateinit var funcionarioService:    FuncionarioService
+    @Mock
+    private lateinit var repository: FuncionarioRepository
+
+    @InjectMocks
+    private lateinit var service: FuncionarioService
 
     @BeforeEach
-    fun setup() {
-        funcionarioRepository   = mock(FuncionarioRepository::class.java)
-        funcionarioService      = FuncionarioService(funcionarioRepository)
+    fun setUp() {
+        MockitoAnnotations.openMocks(this)
     }
 
     @Test
-    fun `cadastrar funcionario com CPF valido`() {
+    fun `teste salvar`() {
         val funcionario = Funcionario(
-            id              = 1L,
-            nome            = "Fulano",
-            rg              = "123456",
-            cpf             = "12345678901",
-            dtNascimento    = LocalDate.now(),
-            emailCorp       = "fulano@example.com",
-            funcao          = "Analista",
-            dtAdmissao      = LocalDate.now(),
-            dtDemissao      = LocalDate.now(),
-            salario         = 1000.0
+            1,
+            "João",
+            "123456",
+            "12345678901",
+            LocalDate.of(1990, 1, 1),
+            "joao@example.com",
+            "Desenvolvedor",
+            LocalDate.of(2022, 1, 1),
+            null,
+            3000.0
         )
+        `when`(repository.existsByCpf(funcionario.cpf)).thenReturn(false)
+        `when`(repository.save(funcionario)).thenReturn(funcionario)
 
-        `when`(funcionarioRepository.save(any(Funcionario::class.java))).thenReturn(funcionario)
+        val savedFuncionario = service.salvar(funcionario)
 
-        val result = funcionarioService.cadastrarFuncionario(funcionario)
-
-        Assertions.assertEquals(funcionario, result)
+        assertEquals(funcionario, savedFuncionario)
+        verify(repository).save(funcionario)
     }
 
     @Test
-    fun `cadastrar funcionario deve lançar exceção para CPF inválido`() {
+    fun `teste salvar com CPF já existente`() {
         val funcionario = Funcionario(
-            id              = 1L,
-            nome            = "Fulano",
-            rg              = "123456",
-            cpf             = "123",
-            dtNascimento    = LocalDate.now(),
-            emailCorp       = "fulano@example.com",
-            funcao          = "Analista",
-            dtAdmissao      = LocalDate.now(),
-            dtDemissao      = LocalDate.now(),
-            salario         = 1000.0
+            1,
+            "João",
+            "123456",
+            "12345678901",
+            LocalDate.of(1990, 1, 1),
+            "joao@example.com",
+            "Desenvolvedor",
+            LocalDate.of(2022, 1, 1),
+            LocalDate.of(2023, 1, 1),
+            3000.0
         )
+        `when`(repository.existsByCpf(funcionario.cpf)).thenReturn(true)
 
-        Assertions.assertThrows(Exception::class.java) {
-            funcionarioService.cadastrarFuncionario(funcionario)
+        assertThrows(IllegalStateException::class.java) {
+            service.salvar(funcionario)
         }
     }
 
     @Test
-    fun `atualizar funcionario deve lançar exceção para CPF inválido`() {
+    fun `teste atualizar funcionario`() {
         val funcionario = Funcionario(
-            id              = 1L,
-            nome            = "Fulano",
-            rg              = "123456",
-            cpf             = "123",
-            dtNascimento    = LocalDate.now(),
-            emailCorp       = "fulano@example.com",
-            funcao          = "Analista de testes",
-            dtAdmissao      = LocalDate.now(),
-            dtDemissao      = LocalDate.now(),
-            salario         = 1000.0
+            1,
+            "João",
+            "123456",
+            "12345678901",
+            LocalDate.of(1990, 1, 1),
+            "joao@example.com",
+            "Desenvolvedor",
+            LocalDate.of(2022, 1, 1),
+            LocalDate.of(2023, 1, 1),
+            3000.0
         )
+        `when`(repository.save(funcionario)).thenReturn(funcionario)
 
-        Assertions.assertThrows(Exception::class.java) {
-            funcionarioService.atualizarFuncionario("123", funcionario)
+        val updatedFuncionario = service.atualizarFuncionario(funcionario)
+
+        assertEquals(funcionario, updatedFuncionario)
+        verify(repository).save(funcionario)
+    }
+
+    @Test
+    fun `teste atualizar funcionario com CPF inválido`() {
+        val funcionario = Funcionario(
+            1,
+            "João",
+            "123456",
+            "12345678901",
+            LocalDate.of(1990, 1, 1),
+            "joao@example.com",
+            "Desenvolvedor",
+            LocalDate.of(2022, 1, 1),
+            LocalDate.of(2023, 1, 1),
+            3000.0
+        )
+        funcionario.cpf = "12345"
+
+        assertThrows(Exception::class.java) {
+            service.atualizarFuncionario(funcionario)
         }
     }
 
     @Test
-    fun `atualizar funcionario deve lançar exceção para funcionario não encontrado`() {
-        val funcionario = Funcionario(
-            id              = 1L,
-            nome            = "Fulano",
-            rg              = "12345678901",
-            cpf             = "123",
-            dtNascimento    = LocalDate.now(),
-            emailCorp       = "fulano@example.com",
-            funcao          = "Analista de testes",
-            dtAdmissao      = LocalDate.now(),
-            dtDemissao      = LocalDate.now(),
-            salario         = 1000.0
-        )
-
-        `when`(funcionarioRepository.existsByCpf("12345678901")).thenReturn(false)
-
-        Assertions.assertThrows(Exception::class.java) {
-            funcionarioService.atualizarFuncionario("12345678901", funcionario)
-        }
-    }
-
-    @Test
-    fun `atualizar funcionario com sucesso`() {
-        val cpf = "12345678901"
-        val funcionario = Funcionario(
-            id              = 1L,
-            nome            = "Fulano",
-            rg              = "12345678901",
-            cpf             = "123",
-            dtNascimento    = LocalDate.now(),
-            emailCorp       = "fulano@example.com",
-            funcao          = "Analista de testes",
-            dtAdmissao      = LocalDate.now(),
-            dtDemissao      = LocalDate.now(),
-            salario         = 1000.0
-        )
-    
-        `when`(funcionarioRepository.existsByCpf(cpf)).thenReturn(true)
-        `when`(funcionarioRepository.save(funcionario)).thenReturn(funcionario)
-    
-        val funcionarioAtualizado = funcionarioService.atualizarFuncionario(cpf, funcionario)
-    
-        Assertions.assertEquals(cpf, funcionarioAtualizado.cpf)
-    }
-
-    @Test
-    fun `apagar um funcionario`(){
+    fun `test deletar funcionario`() {
         val id = 1L
+        `when`(repository.existsById(id)).thenReturn(true)
+        service.deletarFuncionario(id)
+        verify(repository).deleteById(id)
+    }
 
-        Assertions.assertDoesNotThrow {
-            funcionarioService.deletarFuncionario(id)
+    @Test
+    fun `test deletar funcionario com ID inexistente`() {
+        val id = 1L
+        `when`(repository.existsById(id)).thenReturn(false)
+
+        assertThrows(Exception::class.java) {
+            service.deletarFuncionario(id)
         }
     }
 
     @Test
-    fun `buscar funcionario existente`() {
+    fun `teste pesquisar CPF`() {
         val cpf = "12345678901"
         val funcionario = Funcionario(
-            id              = 1L,
-            nome            = "Fulano",
-            rg              = "123456",
-            cpf             = "123",
-            dtNascimento    = LocalDate.now(),
-            emailCorp       = "fulano@example.com",
-            funcao          = "Analista",
-            dtAdmissao      = LocalDate.now(),
-            dtDemissao      = LocalDate.now(),
-            salario         = 1000.0
+            1,
+            "João",
+            "123456",
+            cpf,
+            LocalDate.of(1990, 1, 1),
+            "joao@example.com",
+            "Desenvolvedor",
+            LocalDate.of(2022, 1, 1),
+            LocalDate.of(2023, 1, 1),
+            3000.0
         )
-        `when`(funcionarioRepository.findByCpf(cpf)).thenReturn(funcionario)
+        `when`(repository.findByCpf(cpf)).thenReturn(funcionario)
 
-        val result = funcionarioService.buscarFuncionario(cpf)
+        val foundFuncionario = service.pesquisarCpf(cpf)
 
-        Assertions.assertEquals(funcionario, result)
+        assertEquals(funcionario, foundFuncionario)
     }
 
     @Test
-    fun `buscar funcionario inexistente`() {
+    fun `teste pesquisar com CPF não encontrado`() {
         val cpf = "12345678901"
-        `when`(funcionarioRepository.findByCpf(cpf)).thenReturn(null)
+        `when`(repository.findByCpf(cpf)).thenReturn(null)
 
-        Assertions.assertThrows(Exception::class.java) {
-            funcionarioService.buscarFuncionario(cpf)
+        assertThrows(Exception::class.java) {
+            service.pesquisarCpf(cpf)
         }
+    }
+
+    @Test
+    fun `test listar funcionarios`() {
+        val funcionarios = listOf(
+            Funcionario(
+                1,
+                "João",
+                "123456",
+                "12345678901",
+                LocalDate.of(1990, 1, 1),
+                "joao@example.com",
+                "Desenvolvedor",
+                LocalDate.of(2022, 1, 1),
+                LocalDate.of(2023, 1, 1),
+                3000.0
+            ),
+            Funcionario(
+                2,
+                "Maria",
+                "654321",
+                "98765432109",
+                LocalDate.of(1995, 5, 10),
+                "maria@example.com",
+                "Analista",
+                LocalDate.of(2021, 6, 15),
+                LocalDate.of(2023, 1, 1),
+                3500.0
+            )
+        )
+        `when`(repository.findAll()).thenReturn(funcionarios)
+
+        val foundFuncionarios = service.listarFuncionarios()
+
+        assertEquals(funcionarios, foundFuncionarios)
     }
 }

@@ -1,42 +1,43 @@
 package com.ewertonalves.sisrh.service
 
-import org.springframework.beans.factory.annotation.Autowired;
-
-import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.stereotype.Service
 import com.ewertonalves.sisrh.repository.FuncionarioRepository
 import com.ewertonalves.sisrh.model.Funcionario
 
 @Service
-class FuncionarioService(@Autowired private val repository: FuncionarioRepository){
+class FuncionarioService(@Autowired private val repository: FuncionarioRepository) {
 
-    fun cadastrarFuncionario(funcionario: Funcionario): Funcionario {
-        if (!validarCPF(funcionario.cpf)) {
-            throw Exception("CPF deve ter exatamente 11 dígitos")
-        }
-        return repository.save(funcionario)
-    }
-
-    fun atualizarFuncionario(cpf: String, funcionario: Funcionario): Funcionario {
-        if (!validarCPF(cpf)) {
-            throw Exception("CPF inválido: $cpf")
-        }
+    fun salvar(funcionario: Funcionario): Funcionario {
+        require(validarCPF(funcionario.cpf)) { "CPF inválido" }
     
-        if (!repository.existsByCpf(cpf)) {
-            throw Exception("Funcionário não encontrado com o CPF: $cpf")
+        if (repository.existsByCpf(funcionario.cpf)) {
+            throw IllegalStateException("CPF já foi cadastrado")
         }
-        
-        funcionario.cpf = cpf
         return repository.save(funcionario)
     }
 
-    fun deletarFuncionario(id: Long){
-        return repository.deleteById(id)
+    fun atualizarFuncionario(funcionario: Funcionario): Funcionario {
+        if (!validarCPF(funcionario.cpf)) {
+            throw Exception("CPF inválido")
+        }
+        return repository.save(funcionario)
     }
 
-    fun buscarFuncionario(cpf: String): Funcionario {
-        val funcionario = repository.findByCpf(cpf) ?: 
-            throw Exception("Funcionário não encontrado com o cpf: $cpf")
+    fun deletarFuncionario(id: Long) {
+        if (!repository.existsById(id)) {
+            throw Exception("Funcionário não encontrado com o ID: $id")
+        }
+        repository.deleteById(id)
+    }
+
+    fun pesquisarCpf(cpf: String): Funcionario {
+        val funcionario = repository.findByCpf(cpf) ?: throw Exception("Funcionário não encontrado com o CPF: $cpf")
         return funcionario
+    }
+
+    fun listarFuncionarios(): List<Funcionario> {
+        return repository.findAll()
     }
 
     private fun validarCPF(cpf: String): Boolean {
